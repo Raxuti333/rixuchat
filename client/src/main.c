@@ -9,9 +9,16 @@
 
 #define MAXLEN 4096
 
-int run = 1;
+int fd;
+static struct termios oldt, newt; 
 
-void terminationCatch(int sig) { run = 0; }
+void terminationCatch(int sig) 
+{ 
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    close(fd);
+    printf("\033[0G\033[KExiting\n");
+    exit(0);
+}
 
 int kbhit()
 {
@@ -27,18 +34,17 @@ int kbhit()
 
 int main(int argc, char** argv)
 {
-    int fd;
     struct sockaddr server;
 
     char* address;
     char* port;
     char* name;
 
-    if(argc != 2) { puts("rhat <name>@<address>:<port>"); return 1; }
+    if(argc != 2) { puts(TARGET" <name>@<address>:<port>"); return 1; }
 
-    if(!getargs(argv[1], &address, &port, &name)) { puts("rhat <name>@<address>:<port>"); return 1; }
+    if(!getargs(argv[1], &address, &port, &name)) { puts(TARGET" <name>@<address>:<port>"); return 1; }
 
-    printf("Name:\e[1;36m%s\e[0m\nAddress:\e[1;31m%s\e[0m:\e[1;92m%s\e[0m\n", name, address, port);
+    printf("Running:"TARGET" version:"VERSION"\nName:\e[1;36m%s\e[0m\nAddress:\e[1;31m%s\e[0m:\e[1;92m%s\e[0m\n", name, address, port);
     
     if((fd = SocketConnect(address, port, &server)) == -1) { puts("Failed creating socket"); return 1; }
 
@@ -51,7 +57,7 @@ int main(int argc, char** argv)
 
     Message* recived = malloc(MAXLEN);
 
-    static struct termios oldt, newt;    
+
     tcgetattr(STDIN_FILENO, &oldt);
     newt = oldt;
     newt.c_lflag &= ~(ICANON | ECHO);
@@ -81,7 +87,7 @@ int main(int argc, char** argv)
         sigaction(SIGHUP, &new_action, NULL);
     }
 
-    while(run)
+    while(1)
     {
         if(kbhit())
         {
@@ -124,11 +130,8 @@ int main(int argc, char** argv)
 
         if(recv(fd, recived, MAXLEN, MSG_DONTWAIT) > 0)
         {
-            if(recived->length == -1)
-            {
-                long response = -1L;
-                sendto(fd, &response, sizeof(response), MSG_CONFIRM, (const struct sockaddr *)&server, sizeof(struct sockaddr_in));
-            }
+            long response = -1;
+            sendto(fd, &response, sizeof(response), MSG_CONFIRM, (const struct sockaddr *)&server, sizeof(struct sockaddr_in));
 
             printf("\033[0G\033[K");
             printf("%s",recived->msg);
@@ -137,9 +140,6 @@ int main(int argc, char** argv)
             fflush(stdout);
         }
     }
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-    close(fd);
 
     return 0;
 }
