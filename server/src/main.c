@@ -5,6 +5,7 @@
 #include "rhat.h"
 
 #define MAXLEN 4096
+#define MAXLIFE 4
 
 int main(int argc, char** argv)
 {
@@ -33,30 +34,28 @@ int main(int argc, char** argv)
 
         if(length > 0)
         { 
-            printf("%s", msg->msg);
+            puts(msg->msg);
 
             for(unsigned int i = 0; i < count; ++i)
             {
                 clients[i].life--;
-                if(!memcmp(&client, &clients[i].addr, sizeof(struct sockaddr_in))) { printf(" %i\n", clients[i].life); clients[i].life = 100; continue; }
+                if(!memcmp(&client, &clients[i].addr, sizeof(struct sockaddr_in))) { clients[i].life = MAXLIFE; continue; }
                 if(sendto(fd, msg, msg->length + sizeof(Message), MSG_CONFIRM, (const struct sockaddr *)&clients[i].addr, sizeof(struct sockaddr_in)) == -1) { puts("faild to send message"); }
-                if(clients[i].life == 10) { long question = -1L; sendto(fd, &question, sizeof(long), MSG_CONFIRM, (const struct sockaddr *)&clients[i].addr, sizeof(struct sockaddr_in)); }
-                /*TODO FIX REMOVING CONNECTIONS*/
-                if(clients[i].life < 0) { for(unsigned int j = i + 1; j < count; ++j) { clients[j - 1] = clients[j]; } --count; clients = realloc(clients, sizeof(cliinfo) * count); }
+                if(clients[i].life < 0) { for(unsigned int j = i + 1; j < count; ++j) { clients[j - 1] = clients[j]; } --count; --i; clients = realloc(clients, sizeof(cliinfo) * count); }
             }
         }
         if(length == -1)
         {
             for(unsigned int i = 0; i < count; ++i)
             {
-                if(!memcmp(&client, &clients[i].addr, sizeof(struct sockaddr_in))) { clients[i].life = 100; goto END; }
+                if(!memcmp(&client, &clients[i].addr, sizeof(struct sockaddr_in))) { clients[i].life = MAXLIFE; goto END; }
             }
 
             ++count;
             clients = realloc(clients, sizeof(cliinfo) * count);
 
             memcpy(&clients[count-1].addr, &client, sizeof(struct sockaddr_in));
-            clients[count-1].life = 100;
+            clients[count-1].life = MAXLIFE;
 
             END:;
         }
