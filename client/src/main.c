@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 
     if(!getargs(argv[1], &address, &port, &name)) { puts(TARGET" <name>@<address>:<port>"); return 1; }
 
-    printf("Running:"TARGET" version:"VERSION"\nName:\e[1;36m%s\e[0m\nAddress:\e[1;31m%s\e[0m:\e[1;92m%s\e[0m\n", name, address, port);
+    printf("Running:\e[1;33m"TARGET"\e[0m Version:\e[1;95m"VERSION"\e[0m\nName:\e[1;36m%s\e[0m\nAddress:\e[1;31m%s\e[0m:\e[1;92m%s\e[0m\n", name, address, port);
     
     if((fd = SocketConnect(address, port, &server)) == -1) { puts("Failed creating socket"); return 1; }
 
